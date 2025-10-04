@@ -1,47 +1,57 @@
 class OTPCrud:
     @staticmethod
-    def create_otp(db_conn,txn_id:str,email:str,hashed_otp:str):
-        query  = 'INSERT INTO otp_txns (txn_id,hashed_otp,email,is_used,create_ts,expire_ts)VALUES(%s,%s,%s,0,CURRENT_TIMESTAMP(6),DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL 3 MINUTE));'
-        db_conn.cursor.execute(query,(txn_id,hashed_otp,email))
+    def create_otp(db_conn,*, txn_id:str, email:str, hashed_otp:str, purpose:str = 'login'):
+        query  = 'INSERT INTO otp_txns (txn_id,hashed_otp,email,is_used,purpose,create_ts,expire_ts)VALUES(%s,%s,%s,0,%s,CURRENT_TIMESTAMP(6),DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL 3 MINUTE));'
+        db_conn.cursor.execute(query,(txn_id,hashed_otp,email,purpose))
         rowCnt = db_conn.cursor.rowcount
         db_conn.commit()
         return rowCnt
 
     @staticmethod
-    def fetch_otp(db_conn,txn_id):
+    def fetch_otp(db_conn,*,txn_id,email,purpose):
         query = """
-        SELECT
-    email,hashed_otp
-    FROM
-        otp_txns
-    where
-        txn_id = %s
-        AND NOT is_used AND NOT is_verified
-        AND expire_ts > create_ts
-        AND CURRENT_TIMESTAMP() <= expire_ts;
+        SELECT 
+        txn_id,
+        hashed_otp,
+        is_used,
+        email,
+        is_verified
+        FROM otp_txns
+        WHERE txn_id = %s
+        AND purpose = %s
+        and email = %s
+        AND create_ts < expire_ts
+        AND expire_ts >= CURRENT_TIMESTAMP(6)
+        AND not is_used and not is_verified;
         """
-        db_conn.cursor.execute(query,(txn_id,))
+
+        db_conn.cursor.execute(query,(txn_id,purpose,email))
+        print("Query is ", (txn_id,purpose,email))
         row = db_conn.cursor.fetchone()
         if row:
             return row
         else:
             return None
+        
     @staticmethod
-    def is_otp_validated(db_conn,*,txn_id,email):
+    def is_otp_validated(db_conn,*,txn_id,email,purpose):
         query = """
-        SELECT
-            *
-        FROM
-            otp_txns
+        SELECT 
+        txn_id,
+        hashed_otp,
+        is_used,
+        email,
+        is_verified
+        FROM otp_txns
         where
         txn_id = %s
         AND email = %s
-        AND NOT is_used
+        AND purpose = %s
         AND NOT is_used AND is_verified
         AND expire_ts > create_ts
         AND CURRENT_TIMESTAMP() <= expire_ts;
         """
-        db_conn.cursor.execute(query,(txn_id,email,))
+        db_conn.cursor.execute(query,(txn_id,email,purpose))
         row = db_conn.cursor.fetchone()
         if row:
             return row
@@ -49,7 +59,7 @@ class OTPCrud:
             return None
 
     @staticmethod
-    def update_is_verify(db_conn,txn_id):
+    def update_is_verify(db_conn,*,txn_id):
         query = """
         UPDATE
             otp_txns
@@ -74,6 +84,7 @@ class OTPCrud:
             is_used = 1
         WHERE
             txn_id = %s
+            AND is_verified
             AND NOT is_used;"""
 
         db_conn.cursor.execute(query,(txn_id,))
@@ -81,19 +92,14 @@ class OTPCrud:
         db_conn.commit()
         return rowCnt
 
-
-
     @staticmethod
     def delete_otp(db_conn,txn_id):
         query = """
         DELETE FROM
             otp_txns
-        WHERE txn_id = %s;"""
-
+        WHERE txn_id = %s;
+        """
         db_conn.cursor.execute(query,(txn_id,))
         rowCnt = db_conn.cursor.rowcount
         db_conn.commit()
         return rowCnt
-
-
-

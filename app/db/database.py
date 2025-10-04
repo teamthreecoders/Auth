@@ -11,7 +11,7 @@ class DB_CONN:
     _cursor:pymysql.cursors.DictCursor = None
 
     def __init__(self):
-        logging.info("DB CONNECTING...")
+        logging.info(" DB CONNECTING ▷▷▶ ")
         conn_string = DB_CONFIG["conn_string"]
         timeout = 10
         try:
@@ -27,12 +27,18 @@ class DB_CONN:
                 password=conn_string.get("password"),
                 db=conn_string.get("database")
             )
-            logging.info("DB CONNECTION SUCCESSFUL")
+            logging.info("\t ✅::DB CONNECTION SUCCESSFUL::")
+
         except pymysql.DatabaseError as err:
-            logging.error(f"DB CONNECTION FAILED :: DatabaseError :: {err}")
+            logging.error(f"\t ❌:: DB CONNECTION FAILED :: Database Error :: {err.args}")
             raise err
+
+        except pymysql.Error as err:
+            logging.error(f"\t ❌:: DB CONNECTION FAILED :: Connection Error :: {err.args}")
+            raise err
+
         except Exception as err:
-            logging.error(f"DB CONNECTION FAILED :: Something went wrong :: {err}")
+            logging.error(f"\t ❌:: DB CONNECTION FAILED :: Something went wrong :: {err.args}")
             raise err
 
     @property
@@ -64,3 +70,4 @@ class DB_CONN:
     def reconnect(self):
         self.close()
         self.__init__()
+

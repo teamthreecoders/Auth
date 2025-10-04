@@ -1,4 +1,5 @@
 import bcrypt
+from app.exception.exception import MissingArgumentError
 
 class HashPassword:
     @staticmethod
@@ -10,9 +11,9 @@ class HashPassword:
     @staticmethod
     def verify_password(password:str = None, hashed_password:str = None) -> bool:
         if password  ==  None:
-            raise ValueError('Password should not be empty')
+            raise MissingArgumentError('Password should not be empty')
         if hashed_password  ==  None:
-            raise ValueError('Hashed password should not be empty')
+            raise MissingArgumentError('Hashed password should not be empty')
         return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 
